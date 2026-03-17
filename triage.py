@@ -8,8 +8,23 @@ import subprocess
 import json
 import argparse
 
-FLOSS_EXE_PATH = "/Users/george/Documents/malware-analyst/analysis-tools/floss"
-CAPA_EXE_PATH = "/Users/george/Documents/malware-analyst/analysis-tools/capa"
+# ============================================================
+# CONFIGURATION - Update these paths for your environment
+# ============================================================
+
+# Path to FLOSS binary
+# Set environment variable FLOSS_PATH to override
+FLOSS_EXE_PATH = os.environ.get(
+    "FLOSS_PATH", "/Users/george/Documents/malware-analyst/analysis-tools/floss"
+)
+
+# Path to capa binary
+# Set environment variable CAPA_PATH to override
+CAPA_EXE_PATH = os.environ.get(
+    "CAPA_PATH", "/Users/george/Documents/malware-analyst/analysis-tools/capa"
+)
+
+# ============================================================
 
 
 def calculate_entropy(data: bytes) -> float:
