@@ -10,6 +10,15 @@ Install dependencies using uv:
 uv sync
 ```
 
+## Configuration
+
+Tool paths are configured at the top of `triage.py`. Update these variables:
+
+```python
+FLOSS_EXE_PATH = "/path/to/floss"
+CAPA_EXE_PATH = "/path/to/capa"
+```
+
 ## Usage
 
 Run commands using `uv run`:
@@ -86,14 +95,7 @@ This script uses the following external tools (located at `/Users/george/Documen
 - [FLOSS](https://github.com/mandiant/FLOSS) - String deobfuscation
 - [Detect-It-Easy](https://github.com/horsicq/Detect-It-Easy) - File type identification (not available on macOS ARM64)
 
-## Configuration
 
-Tool paths are configured at the top of `triage.py`. Update these variables:
-
-```python
-FLOSS_EXE_PATH = "/path/to/floss"
-CAPA_EXE_PATH = "/path/to/capa"
-```
 
 Or set environment variables to override:
 
