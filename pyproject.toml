@@ -1,0 +1,10 @@
+[project]
+name = "static-analysis-scripts"
+version = "0.1.0"
+description = "Static PE analysis CLI"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "die",
+    "pefile",
+]
