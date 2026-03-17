@@ -19,6 +19,13 @@ FLOSS_EXE_PATH = "/path/to/floss"
 CAPA_EXE_PATH = "/path/to/capa"
 ```
 
+Or set environment variables to override:
+
+```bash
+export FLOSS_PATH=/custom/path/floss
+export CAPA_PATH=/custom/path/capa
+```
+
 ## Usage
 
 Run commands using `uv run`:
@@ -94,15 +101,6 @@ This script uses the following external tools (located at `/Users/george/Documen
 - [capa](https://github.com/mandiant/capa) - Capability detection
 - [FLOSS](https://github.com/mandiant/FLOSS) - String deobfuscation
 - [Detect-It-Easy](https://github.com/horsicq/Detect-It-Easy) - File type identification (not available on macOS ARM64)
-
-
-
-Or set environment variables to override:
-
-```bash
-export FLOSS_PATH=/custom/path/floss
-export CAPA_PATH=/custom/path/capa
-```
 
 ## Requirements
 
