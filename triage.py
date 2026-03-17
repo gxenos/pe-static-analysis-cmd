@@ -1,6 +1,5 @@
 import os
 import sys
-import die
 import pefile
 import hashlib
 import datetime
@@ -101,7 +100,11 @@ def get_pe_metadata(file_path: str) -> dict:
     metadata["machine"] = hex(pe.FILE_HEADER.Machine)
     metadata["number_of_sections"] = pe.FILE_HEADER.NumberOfSections
     metadata["timestamp"] = (
-        datetime.datetime.utcfromtimestamp(pe.FILE_HEADER.TimeDateStamp).isoformat()
+        datetime.datetime.fromtimestamp(
+            pe.FILE_HEADER.TimeDateStamp, datetime.timezone.utc
+        )
+        .replace(tzinfo=None)
+        .isoformat()
         + "Z"
     )
     metadata["characteristics"] = hex(pe.FILE_HEADER.Characteristics)
@@ -130,7 +133,17 @@ def get_pe_metadata(file_path: str) -> dict:
 
     if hasattr(pe, "FileInfo"):
         for fileinfo in pe.FileInfo:
-            if fileinfo.Key == b"StringFileInfo":
+            if isinstance(fileinfo, list):
+                for fi in fileinfo:
+                    if hasattr(fi, "Key") and fi.Key == b"StringFileInfo":
+                        for st in fi.StringTable:
+                            for k, v in st.entries.items():
+                                key = k.decode(errors="ignore")
+                                val = v.decode(errors="ignore")
+                                metadata[key] = val
+                                if key.lower() == "originalfilename":
+                                    metadata["original_filename"] = val
+            elif hasattr(fileinfo, "Key") and fileinfo.Key == b"StringFileInfo":
                 for st in fileinfo.StringTable:
                     for k, v in st.entries.items():
                         key = k.decode(errors="ignore")
@@ -147,82 +160,94 @@ def get_pe_metadata(file_path: str) -> dict:
     return metadata
 
 
-def run_die(file_path: str) -> dict:
-    return die.scan_file(
-        file_path,
-        die.ScanFlags.VERBOSE_FLAG
-        | die.ScanFlags.DEEP_SCAN
-        | die.ScanFlags.HEURISTIC_SCAN
-        | die.ScanFlags.RECURSIVE_SCAN
-        | die.ScanFlags.RESULT_AS_JSON,
-        str(die.database_path / "db"),
-    )
+def run_die(file_path: str):
+    return "Detect-It-Easy is not available on macOS ARM64"
 
 
 def run_capa_scan(file_path: str):
     try:
         if os.path.isfile(CAPA_EXE_PATH):
-            output = subprocess.check_output(
+            result = subprocess.run(
                 [CAPA_EXE_PATH, "-q", file_path],
                 stderr=subprocess.DEVNULL,
                 encoding="utf-8",
                 errors="replace",
                 universal_newlines=True,
+                stdout=subprocess.PIPE,
             )
-            return output
+            return result.stdout if result.stdout else "capa found no capabilities"
         else:
             return "capa not found"
-    except subprocess.CalledProcessError:
-        return "capa execution failed"
-    except json.JSONDecodeError:
-        return "invalid JSON output from capa"
+    except Exception as e:
+        return f"capa execution failed: {e}"
 
 
 def run_floss(file_path: str):
     try:
         if os.path.isfile(FLOSS_EXE_PATH):
-            output = subprocess.check_output(
+            result = subprocess.run(
                 [FLOSS_EXE_PATH, file_path],
                 stderr=subprocess.DEVNULL,
+                encoding="utf-8",
+                errors="replace",
                 universal_newlines=True,
+                stdout=subprocess.PIPE,
             )
-            return output
+            return result.stdout if result.stdout else "floss found no strings"
         else:
             return "floss not found"
-    except subprocess.CalledProcessError:
-        return "floss execution failed"
-    except json.JSONDecodeError:
-        return "invalid JSON output from floss"
+    except Exception as e:
+        return f"floss execution failed: {e}"
 
 
 def main():
     parser = argparse.ArgumentParser(description="Static PE analysis CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    subparsers.add_parser("hashes", help="Calculate file hashes").add_argument(
-        "file", help="Path to file"
+    hashes_parser = subparsers.add_parser("hashes", help="Calculate file hashes")
+    hashes_parser.add_argument("file", help="Path to file")
+    hashes_parser.add_argument("-o", "--output", help="Output file path", default=None)
+
+    iat_parser = subparsers.add_parser("iat", help="Get Import Address Table")
+    iat_parser.add_argument("file", help="Path to PE file")
+    iat_parser.add_argument("-o", "--output", help="Output file path", default=None)
+
+    eat_parser = subparsers.add_parser("eat", help="Get Export Address Table")
+    eat_parser.add_argument("file", help="Path to PE file")
+    eat_parser.add_argument("-o", "--output", help="Output file path", default=None)
+
+    sections_parser = subparsers.add_parser("sections", help="Get PE sections info")
+    sections_parser.add_argument("file", help="Path to PE file")
+    sections_parser.add_argument(
+        "-o", "--output", help="Output file path", default=None
     )
-    subparsers.add_parser("iat", help="Get Import Address Table").add_argument(
-        "file", help="Path to PE file"
+
+    metadata_parser = subparsers.add_parser("metadata", help="Get PE metadata")
+    metadata_parser.add_argument("file", help="Path to PE file")
+    metadata_parser.add_argument(
+        "-o", "--output", help="Output file path", default=None
     )
-    subparsers.add_parser("eat", help="Get Export Address Table").add_argument(
-        "file", help="Path to PE file"
+
+    die_parser = subparsers.add_parser("die", help="Run detect-it-easy")
+    die_parser.add_argument("file", help="Path to file")
+    die_parser.add_argument("-o", "--output", help="Output file path", default=None)
+
+    capa_parser = subparsers.add_parser("capa", help="Run capa analysis")
+    capa_parser.add_argument("file", help="Path to PE file")
+    capa_parser.add_argument("-o", "--output", help="Output file path", default=None)
+
+    floss_parser = subparsers.add_parser("floss", help="Run floss analysis")
+    floss_parser.add_argument("file", help="Path to file")
+    floss_parser.add_argument("-o", "--output", help="Output file path", default=None)
+
+    full_analysis_parser = subparsers.add_parser(
+        "full-analysis", help="Run all analysis tools"
     )
-    subparsers.add_parser("sections", help="Get PE sections info").add_argument(
-        "file", help="Path to PE file"
+    full_analysis_parser.add_argument("file", help="Path to PE file")
+    full_analysis_parser.add_argument(
+        "-o", "--output", help="Output file path", default=None
     )
-    subparsers.add_parser("metadata", help="Get PE metadata").add_argument(
-        "file", help="Path to PE file"
-    )
-    subparsers.add_parser("die", help="Run detect-it-easy").add_argument(
-        "file", help="Path to file"
-    )
-    subparsers.add_parser("capa", help="Run capa analysis").add_argument(
-        "file", help="Path to PE file"
-    )
-    subparsers.add_parser("floss", help="Run floss analysis").add_argument(
-        "file", help="Path to file"
-    )
+
     subparsers.add_parser("help", help="List available commands")
 
     args = parser.parse_args()
@@ -253,10 +278,27 @@ def main():
             result = run_capa_scan(args.file)
         elif args.command == "floss":
             result = run_floss(args.file)
+        elif args.command == "full-analysis":
+            result = {
+                "hashes": get_hashes(args.file),
+                "metadata": get_pe_metadata(args.file),
+                "sections": get_sections(args.file),
+                "iat": get_IAT(args.file),
+                "eat": get_EAT(args.file),
+                "die": run_die(args.file),
+                "capa": run_capa_scan(args.file),
+                "floss": run_floss(args.file),
+            }
     except Exception as e:
         result = {"error": str(e)}
 
-    print(json.dumps(result, indent=2))
+    output = json.dumps(result, indent=2)
+
+    if args.output:
+        with open(args.output, "w") as f:
+            f.write(output)
+    else:
+        print(output)
 
 
 if __name__ == "__main__":

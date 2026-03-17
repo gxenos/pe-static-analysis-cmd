@@ -3,12 +3,6 @@ revision = 3
 requires-python = ">=3.12"
 
 [[package]]
-name = "die"
-version = "0.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/52/a7/c2ba9bbd846c87ff92585d48359cf66f47e1cbc9367fb46b39a5044553e1/die-0.2.0.tar.gz", hash = "sha256:692f399c8c41b9b65edcae37c63f7a2e13cf5a7e213f92206ff971caad06c571", size = 11741, upload-time = "2012-08-26T03:53:33.61Z" }
-
-[[package]]
 name = "pefile"
 version = "2024.8.26"
 source = { registry = "https://pypi.org/simple" }
@@ -22,12 +16,8 @@ name = "static-analysis-scripts"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "die" },
     { name = "pefile" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "die" },
-    { name = "pefile" },
-]
+requires-dist = [{ name = "pefile" }]
