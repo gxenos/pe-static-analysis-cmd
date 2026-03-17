@@ -1,6 +1,6 @@
 # Triage - Static PE Analysis CLI
 
-A command-line utility for static analysis of PE (Portable Executable) files.
+A command-line utility for static analysis of PE (Portable Executable) files or AI IDEs and agents 
 
 ## Installation
 
