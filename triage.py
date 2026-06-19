@@ -1,6 +1,7 @@
 import os
 import sys
 import pefile
+import ppdeep
 import hashlib
 import datetime
 import math
@@ -54,7 +55,16 @@ def get_hashes(file_path: str) -> dict:
             for h in hashes.values():
                 h.update(chunk)
 
-    return {k: v.hexdigest() for k, v in hashes.items()}
+    result = {k: v.hexdigest() for k, v in hashes.items()}
+
+    # ssdeep fuzzy hash (pure-Python ppdeep, ssdeep-compatible). Best-effort:
+    # a fuzzy-hash failure must not drop the cryptographic hashes.
+    try:
+        result["ssdeep"] = ppdeep.hash_from_file(file_path)
+    except Exception:
+        pass
+
+    return result
 
 
 def get_IAT(file_path: str) -> dict:
